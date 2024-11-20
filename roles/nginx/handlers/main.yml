@@ -1,0 +1,8 @@
+---
+- name: Restart Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: restarted
+
+- name: Reload firewall
+  ansible.builtin.command: firewall-cmd --reload

@@ -1,0 +1,103 @@
+---
+# 1. Установка Nginx
+- name: Ensure Nginx is installed
+  ansible.builtin.yum:
+    name: nginx
+    state: present
+
+# 2. Убедиться, что Nginx установлен последней версии
+- name: Ensure latest version of Nginx is installed
+  ansible.builtin.yum:
+    name: nginx
+    state: latest
+
+# 3. Настроить старт службы
+- name: Ensure Nginx service is started
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true
+
+# 4. Развернуть основной конфигурационный файл Nginx
+- name: Deploy Nginx configuration
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+  notify: Restart Nginx
+
+# 5. Загрузить файл index.html
+- name: Deploy index.html to Nginx
+  ansible.builtin.copy:
+    src: index.html
+    dest: /usr/share/nginx/html/index.html
+
+# 6. Открыть порт 80 в брандмауэре
+- name: Ensure HTTP port is open in the firewall
+  ansible.builtin.firewalld:
+    service: http
+    permanent: true
+    state: enabled
+
+# 7. Открыть порт 443 в брандмауэре для HTTPS (заранее)
+- name: Ensure HTTPS port is open in the firewall
+  ansible.builtin.firewalld:
+    service: https
+    permanent: true
+    state: enabled
+
+# 8. Убедиться, что SELinux позволяет работу Nginx
+- name: Ensure SELinux allows Nginx traffic
+  ansible.builtin.command: setsebool -P httpd_can_network_connect 1
+
+# 9. Убедиться, что директория подлога доступна
+- name: Ensure Nginx logs directory exists
+  ansible.builtin.file:
+    path: /var/log/nginx
+    state: directory
+    owner: nginx
+    group: nginx
+
+# 10. Удалить ненужные файлы из веб-директории
+- name: Remove default Nginx HTML files
+  ansible.builtin.file:
+    path: /usr/share/nginx/html/index.nginx-debian.html
+    state: absent
+
+# 11. Создать резервную копию основного конфига перед установкой
+- name: Backup existing Nginx configuration
+  ansible.builtin.copy:
+    src: /etc/nginx/nginx.conf
+    dest: /etc/nginx/nginx.conf.bak
+    remote_src: yes
+
+# 12. Создать директорию для SSL сертификатов (опционально)
+- name: Create SSL directory
+  ansible.builtin.file:
+    path: /etc/nginx/ssl
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+# 13. Развернуть SSL-конфигурацию (если потребуется)
+- name: Deploy SSL configuration
+  ansible.builtin.template:
+    src: nginx_ssl.conf.j2
+    dest: /etc/nginx/conf.d/ssl.conf
+  notify: Restart Nginx
+
+# 14. Очистить кеш Nginx
+- name: Clear Nginx cache
+  ansible.builtin.command: nginx -s reload
+
+# 15. Проверить конфигурацию Nginx
+- name: Test Nginx configuration
+  ansible.builtin.command: nginx -t
+  register: nginx_test
+  ignore_errors: true
+
+# 16. Убедиться, что конфигурация без ошибок
+- name: Ensure Nginx configuration is valid
+  ansible.builtin.fail:
+    msg: "Nginx configuration test failed"
+  when: nginx_test.rc != 0

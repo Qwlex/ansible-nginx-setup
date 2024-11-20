@@ -1,0 +1,9 @@
+server_name: localhost
+nginx_user: nginx
+nginx_group: nginx
+nginx_logs: /var/log/nginx
+server_name: localhost
+root_dir: /usr/share/nginx/html
+ssl_cert_path: /etc/nginx/ssl/nginx.crt
+ssl_key_path: /etc/nginx/ssl/nginx.key
+
